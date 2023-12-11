@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func d1p1() {
+func d2p1() {
 	file_name := "d2.data"
 
 	file, err := os.Open(file_name)
@@ -29,7 +29,7 @@ func d1p1() {
 		line := scanner.Text()
 		log.Print(line)
 
-		game_no, cubes_info_str := find_game_no(line)
+		game_no, cubes_info_str := parse_line(line)
 
 		log.Printf("Game no: %v", game_no)
 		log.Printf("Cubes info str: %v", cubes_info_str)
@@ -62,7 +62,41 @@ func d1p1() {
 	fmt.Println(sum)
 }
 
-func find_game_no(str string) (int, string) {
+func d2p2() {
+	file_name := "d2.data"
+
+	file, err := os.Open(file_name)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(file)
+
+	sum := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		_, round_info := parse_line(line)
+
+		cubes := find_cubes_in_each_round(round_info)
+
+		minimum_cubes := Cubes{}
+
+		for _, cube := range cubes {
+			minimum_cubes.Blue = max(cube.Blue, minimum_cubes.Blue)
+			minimum_cubes.Red = max(cube.Red, minimum_cubes.Red)
+			minimum_cubes.Green = max(cube.Green, minimum_cubes.Green)
+		}
+
+		sum += minimum_cubes.Power()
+
+	}
+
+	fmt.Println(sum)
+}
+
+func parse_line(str string) (int, string) {
 	splitted_line := strings.Split(str, ":")
 
 	game_str := splitted_line[0]
@@ -94,5 +128,5 @@ func find_cubes_in_each_round(str string) []Cubes {
 }
 
 func main() {
-	d1p1()
+	d2p2()
 }

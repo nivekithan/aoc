@@ -12,6 +12,10 @@ type Cubes struct {
 	Blue  int
 }
 
+func (cube *Cubes) Power() int {
+	return cube.Blue * cube.Green * cube.Red
+}
+
 func NewCubesFromString(str string) Cubes {
 	colors := strings.Split(str, ",")
 
