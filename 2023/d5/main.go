@@ -29,7 +29,6 @@ func (r *Range) has(num int) (bool, int) {
 }
 
 type Input struct {
-	seeds                   []int
 	seed_to_soil            []Range
 	soil_to_fertilizer      []Range
 	fertilizer_to_water     []Range
@@ -51,7 +50,7 @@ const (
 	HumidityToLocation
 )
 
-func read_input() Input {
+func read_input() (Input, []int) {
 	file_name := "d5.data"
 
 	file, err := os.Open(file_name)
@@ -68,6 +67,7 @@ func read_input() Input {
 
 	var parsingKind ParsingKind = -1
 
+	seeds := []int{}
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -81,7 +81,7 @@ func read_input() Input {
 					log.Panic(err)
 				}
 
-				input.seeds = append(input.seeds, num)
+				seeds = append(seeds, num)
 			}
 
 			continue
@@ -118,7 +118,7 @@ func read_input() Input {
 
 		range_input := Range{}
 
-		// log.Println(line)
+		// 	// log.Println(line)
 		for i, range_in_str := range range_values {
 			num, err := strconv.Atoi(range_in_str)
 
@@ -152,19 +152,139 @@ func read_input() Input {
 		}
 	}
 
-	return input
+	return input, seeds
 
 }
 
-func d5p1() {
-	input := read_input()
+type SeedRange struct {
+	start  int
+	length int
+}
 
-	c := make(chan int, len(input.seeds))
+func read_input_2() (Input, []SeedRange) {
+	file_name := "d5.data"
+
+	file, err := os.Open(file_name)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	input := Input{}
+
+	var parsingKind ParsingKind = -1
+
+	seeds := []SeedRange{}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "seeds:") {
+			seed_nums := strings.Split(strings.Split(line, "seeds: ")[1], " ")
+
+			for i := 0; i < len(seed_nums)-1; i += 2 {
+				nums_in_str, length_in_str := seed_nums[i], seed_nums[i+1]
+
+				num, err := strconv.Atoi(nums_in_str)
+
+				if err != nil {
+					log.Panic(err)
+				}
+
+				length, err := strconv.Atoi(length_in_str)
+
+				if err != nil {
+					log.Panic(err)
+				}
+
+				seeds = append(seeds, SeedRange{start: num, length: length})
+			}
+
+			continue
+		}
+
+		if strings.HasPrefix(line, "seed-to-soil map:") {
+			parsingKind = SeedToSoil
+			continue
+		} else if strings.HasPrefix(line, "soil-to-fertilizer map:") {
+			parsingKind = SoilToFertilizer
+			continue
+		} else if strings.HasPrefix(line, "fertilizer-to-water map:") {
+			parsingKind = FertilizerToWater
+			continue
+		} else if strings.HasPrefix(line, "water-to-light map:") {
+			parsingKind = WaterToLight
+			continue
+		} else if strings.HasPrefix(line, "light-to-temperature map:") {
+			parsingKind = LightToTemperature
+			continue
+		} else if strings.HasPrefix(line, "temperature-to-humidity map:") {
+			parsingKind = TemperatureToHumidity
+			continue
+		} else if strings.HasPrefix(line, "humidity-to-location map:") {
+			parsingKind = HumidityToLocation
+			continue
+		}
+
+		range_values := strings.Split(line, " ")
+
+		if line == "" {
+			continue
+		}
+
+		range_input := Range{}
+
+		// 	// log.Println(line)
+		for i, range_in_str := range range_values {
+			num, err := strconv.Atoi(range_in_str)
+
+			if err != nil {
+				log.Panic(err)
+			}
+
+			if i == 0 {
+				range_input.destination_start = num
+			} else if i == 1 {
+				range_input.source_start = num
+			} else if i == 2 {
+				range_input.length = num
+			}
+		}
+
+		if parsingKind == SeedToSoil {
+			input.seed_to_soil = append(input.seed_to_soil, range_input)
+		} else if parsingKind == SoilToFertilizer {
+			input.soil_to_fertilizer = append(input.soil_to_fertilizer, range_input)
+		} else if parsingKind == FertilizerToWater {
+			input.fertilizer_to_water = append(input.fertilizer_to_water, range_input)
+		} else if parsingKind == WaterToLight {
+			input.water_to_light = append(input.water_to_light, range_input)
+		} else if parsingKind == LightToTemperature {
+			input.light_to_temperature = append(input.light_to_temperature, range_input)
+		} else if parsingKind == TemperatureToHumidity {
+			input.temperature_to_humidity = append(input.temperature_to_humidity, range_input)
+		} else if parsingKind == HumidityToLocation {
+			input.humidity_to_location = append(input.humidity_to_location, range_input)
+		}
+	}
+
+	return input, seeds
+
+}
+func d5p1() {
+
+	input, seeds := read_input()
+
+	c := make(chan int, len(seeds))
 
 	var wg sync.WaitGroup
-	for _, seed := range input.seeds {
+	for _, seed := range seeds {
 		wg.Add(1)
-		log.Printf("Seed: %v", seed)
+		// 	log.Printf("Seed: %v", seed)
 		go find_location_of_seed(&input, seed, &wg, c)
 	}
 
@@ -184,49 +304,74 @@ func d5p1() {
 }
 
 func d5p2() {
-	input := read_input()
-
-	c := make(chan int, len(input.seeds))
+	input, seeds := read_input_2()
 
 	var wg sync.WaitGroup
-	for _, seed := range input.seeds {
+	var c = make(chan int, 10)
+
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	for _, seed_range := range seeds {
+		start := seed_range.start
+		length := seed_range.length
+
 		wg.Add(1)
-		log.Printf("Seed: %v", seed)
-		go find_location_of_seed(&input, seed, &wg, c)
+		go func() {
+			min_location := 0
+			for seed := start; seed < start+length; seed++ {
+
+				location := find_location_of_seed(&input, seed, nil, nil)
+
+				if min_location == 0 {
+					min_location = location
+				} else {
+					min_location = min(location, min_location)
+				}
+			}
+			wg.Done()
+			c <- min_location
+		}()
 	}
 
-	wg.Wait()
-	close(c)
-
 	min_location := 0
+
 	for location := range c {
+
 		if min_location == 0 {
 			min_location = location
 		} else {
-			min_location = min(min_location, location)
+			min_location = min(location, min_location)
 		}
 	}
 
 	fmt.Println(min_location)
+
 }
 
 func find_location_of_seed(input *Input, seed int, wg *sync.WaitGroup, c chan int) int {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
 	soil := get_seed_to_soil(input, seed)
-	log.Printf("soil %v", soil)
+	// log.Printf("soil %v", soil)
 	fertilizer := get_soil_to_fertilizer(input, soil)
-	log.Printf("fertilizer %v", fertilizer)
+	// log.Printf("fertilizer %v", fertilizer)
 	water := get_fertilizer_to_water(input, fertilizer)
-	log.Printf("water %v", water)
+	// log.Printf("water %v", water)
 	light := get_water_to_light(input, water)
-	log.Printf("light %v", light)
+	// log.Printf("light %v", light)
 	temperature := get_light_to_temperature(input, light)
-	log.Printf("temperature %v", temperature)
+	// log.Printf("temperature %v", temperature)
 	humidity := get_temperature_to_humidity(input, temperature)
-	log.Printf("humiditiy %v", humidity)
+	// log.Printf("humiditiy %v", humidity)
 	location := get_humidity_to_location(input, humidity)
 
-	c <- location
+	if c != nil {
+		c <- location
+	}
 
 	return location
 
@@ -318,5 +463,5 @@ func get_humidity_to_location(input *Input, humidity int) int {
 }
 
 func main() {
-	d5p1()
+	d5p2()
 }
