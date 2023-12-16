@@ -86,6 +86,72 @@ func read_input() []RaceInfo {
 	return raceInfo
 }
 
+func readInput2() RaceInfo {
+	fileName := "d6.data"
+
+	file, err := os.Open(fileName)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer file.Close()
+
+	lineScanner := bufio.NewScanner(file)
+
+	timeInfo := []string{}
+	recordDistanceInfo := []string{}
+
+	for lineScanner.Scan() {
+		line := lineScanner.Text()
+
+		if strings.HasPrefix(line, "Time:") {
+			wordScanner := bufio.NewScanner(strings.NewReader(line))
+			wordScanner.Split(bufio.ScanWords)
+
+			for wordScanner.Scan() {
+				word := wordScanner.Text()
+
+				if word == "Time:" {
+					continue
+				}
+
+				timeInfo = append(timeInfo, word)
+			}
+		} else if strings.HasPrefix(line, "Distance:") {
+			wordScanner := bufio.NewScanner(strings.NewReader(line))
+			wordScanner.Split(bufio.ScanWords)
+
+			for wordScanner.Scan() {
+				word := wordScanner.Text()
+
+				if word == "Distance:" {
+					continue
+				}
+
+				recordDistanceInfo = append(recordDistanceInfo, word)
+			}
+		}
+	}
+
+	timeInStr := strings.Join(timeInfo, "")
+	distanceInStr := strings.Join(recordDistanceInfo, "")
+
+	time, err := strconv.Atoi(timeInStr)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	recordDistance, err := strconv.Atoi(distanceInStr)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return RaceInfo{Time: time, RecordDistance: recordDistance}
+}
+
 func d5p1() {
 	allRaceInfo := read_input()
 
@@ -116,6 +182,13 @@ func d5p1() {
 	fmt.Println(output)
 }
 
+func d5p2() {
+	raceInfo := readInput2()
+
+	noWaysToWin := findNumberOfWaysToWin(&raceInfo)
+
+	fmt.Println(noWaysToWin)
+}
 func findNumberOfWaysToWin(raceInfo *RaceInfo) int {
 	startingSpeed := findStartingSpeed(raceInfo)
 	endingSpeed := findEndingSpeed(raceInfo)
@@ -210,5 +283,5 @@ func processSpeed(speed int, raceInfo *RaceInfo) (bool, bool, CurveDirection) {
 }
 
 func main() {
-	d5p1()
+	d5p2()
 }
