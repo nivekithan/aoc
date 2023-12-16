@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -282,6 +283,53 @@ func processSpeed(speed int, raceInfo *RaceInfo) (bool, bool, CurveDirection) {
 	}
 }
 
+/*
+	Some math:
+
+t = T - B    (1)
+Where:
+
+t is travel time
+
+T is race time,
+
+B button pressed time)
+
+D = t * B      (2)
+Where
+
+# D is the traveled distance
+
+t is the travel time
+
+# B is the button pressed time
+
+# Substituting (1) in (2) and simplifying we get
+
+D = (T - B) * B
+D = T*B - B^2      (3)
+B^2 - T*B + D = 0
+Now we can use the quadratic formula to solve for B, and setting D to the record distance + 1
+
+B1 = (T + SQRT(T*T - 4 * D))/2
+B2 = (T - SQRT(T*T - 4 * D))/2
+
+FROM: "https://www.reddit.com/r/adventofcode/comments/18bwe6t/comment/kc72otz/"
+*/
+func quadraticD5p2() {
+	raceInfo := readInput2()
+
+	T := float64(raceInfo.Time)
+	D := float64(raceInfo.RecordDistance)
+
+	firstSolution := math.Floor((T + (math.Sqrt(((T * T) - (4 * D))))) / 2)
+	secondSolution := math.Ceil((T - (math.Sqrt(((T * T) - (4 * D))))) / 2)
+
+	solution := int(math.Abs((firstSolution - secondSolution))) + 1
+
+	fmt.Println(solution)
+}
+
 func main() {
-	d5p2()
+	quadraticD5p2()
 }
