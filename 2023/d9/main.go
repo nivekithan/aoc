@@ -100,6 +100,67 @@ func predictNextValue(reading Reading) int {
 	return sum
 }
 
+func part2() {
+	allReadings := readInput()
+
+	var waitGroup sync.WaitGroup
+
+	c := make(chan int, len(allReadings))
+	for _, readings := range allReadings {
+
+		waitGroup.Add(1)
+		go func(readings []int) {
+			previousValue := predictPreviousValue(readings)
+			c <- previousValue
+			waitGroup.Done()
+		}(readings)
+	}
+
+	go func() {
+		waitGroup.Wait()
+		close(c)
+	}()
+
+	sum := 0
+
+	for value := range c {
+		sum += value
+	}
+	fmt.Println(sum)
+}
+
+func predictPreviousValue(reading Reading) int {
+
+	readingFirstValue := []int{}
+	lastReading := reading
+	for {
+		difference, isSame := findDifference(lastReading)
+
+		readingFirstValue = append(readingFirstValue, difference[0])
+
+		if isSame {
+			break
+		}
+
+		lastReading = difference
+	}
+
+	sum := reading[0]
+
+	for i, lastValue := range readingFirstValue {
+		isEven := i%2 == 0
+
+		if isEven {
+
+			sum -= lastValue
+		} else {
+			sum += lastValue
+		}
+	}
+
+	return sum
+}
+
 func findDifference(reading Reading) (Reading, bool) {
 	differenceReading := Reading{}
 
@@ -131,5 +192,5 @@ func findDifference(reading Reading) (Reading, bool) {
 }
 
 func main() {
-	part1()
+	part2()
 }
